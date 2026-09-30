@@ -1,69 +1,221 @@
-import Image from "next/image";
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
+
+const stats = [
+  {
+    id: "box1",
+    value: "58%",
+    text: "Increase in pick-up point usage",
+    className: "stat-one",
+  },
+  {
+    id: "box2",
+    value: "23%",
+    text: "Decrease in customer phone calls",
+    className: "stat-two",
+  },
+  {
+    id: "box3",
+    value: "27%",
+    text: "Increase in delivery efficiency",
+    className: "stat-three",
+  },
+  {
+    id: "box4",
+    value: "40%",
+    text: "Reduction in customer support calls",
+    className: "stat-four",
+  },
+];
+
+const cardRanges = [
+  { selector: ".stat-one", start: 0.24, end: 0.34 },
+  { selector: ".stat-two", start: 0.4, end: 0.5 },
+  { selector: ".stat-three", start: 0.57, end: 0.67 },
+  { selector: ".stat-four", start: 0.74, end: 0.84 },
+];
+
+const welcomeText = "WELCOME ITZFIZZ";
 
 export default function Home() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const roadRef = useRef<HTMLDivElement>(null);
+  const carRef = useRef<HTMLImageElement>(null);
+  const trailRef = useRef<HTMLDivElement>(null);
+  const welcomeRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    const track = trackRef.current;
+    const road = roadRef.current;
+    const car = carRef.current;
+    const trail = trailRef.current;
+    const welcome = welcomeRef.current;
+
+    if (!section || !track || !road || !car || !trail || !welcome) {
+      return;
+    }
+
+    const ctx = gsap.context(() => {
+      const letters =
+        gsap.utils.toArray<HTMLElement>(".welcome-letter");
+
+      // Initial animation state
+      gsap.set(car, {
+        x: 0,
+        force3D: true,
+      });
+
+      gsap.set(trail, {
+        width: 0,
+      });
+
+      gsap.set(letters, {
+        opacity: 0,
+        y: 18,
+      });
+
+      gsap.set(".stat-card", {
+        opacity: 0,
+        y: 35,
+        scale: 0.94,
+      });
+
+      const getDimensions = () => {
+        const roadWidth = road.clientWidth;
+        const carWidth = car.offsetWidth;
+
+        return {
+          roadWidth,
+          carWidth,
+          maxX: Math.max(0, roadWidth - carWidth / 2),
+        };
+      };
+
+      ScrollTrigger.create({
+        trigger: section,
+        start: "top top",
+        end: "bottom top",
+        pin: track,
+        scrub: 1.2,
+        anticipatePin: 1,
+
+        onUpdate: (self) => {
+          const { roadWidth, carWidth, maxX } = getDimensions();
+
+          // Move car from left to right
+          const carX = maxX * self.progress;
+
+          gsap.set(car, {
+            x: carX,
+            force3D: true,
+          });
+
+          // Extend trail with car movement
+          const carCenter = carX + carWidth / 2;
+
+          gsap.set(trail, {
+            width: carCenter,
+            force3D: true,
+          });
+
+          // Reveal welcome text based on car position
+          letters.forEach((letter) => {
+            const letterCenter =
+              letter.offsetLeft + letter.offsetWidth / 2;
+
+            const visible = carCenter >= letterCenter;
+
+            gsap.set(letter, {
+              opacity: visible ? 1 : 0,
+              y: visible ? 0 : 18,
+            });
+          });
+
+          // Animate statistic cards sequentially
+          cardRanges.forEach(({ selector, start, end }) => {
+            const cardProgress = gsap.utils.clamp(
+              0,
+              1,
+              (self.progress - start) / (end - start)
+            );
+
+            const card = document.querySelector(selector);
+
+            if (!card) return;
+
+            gsap.set(card, {
+              opacity: cardProgress,
+              y: 35 * (1 - cardProgress),
+              scale: 0.94 + cardProgress * 0.06,
+              force3D: true,
+            });
+          });
+
+          // Keep dimensions referenced for GSAP calculations
+          void roadWidth;
+        },
+      });
+
+      ScrollTrigger.refresh();
+    }, section);
+
+    return () => {
+      ctx.revert();
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+    <main className="page">
+      <section ref={sectionRef} className="hero-section">
+        <div ref={trackRef} className="hero-track">
+          <div ref={roadRef} className="road">
+            <div ref={trailRef} className="road-trail" />
+
+            <div ref={welcomeRef} className="welcome-text">
+              {welcomeText.split("").map((letter, index) => (
+                <span
+                  key={`${letter}-${index}`}
+                  className="welcome-letter"
+                >
+                  {letter === " " ? "\u00A0" : letter}
+                </span>
+              ))}
+            </div>
+
+            <img
+              ref={carRef}
+              src="/car.png"
+              alt="Sports car"
+              className="car"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
+
+          {stats.map((stat) => (
+            <div
+              key={stat.id}
+              id={stat.id}
+              className={`stat-card ${stat.className}`}
+            >
+              <span className="stat-number">{stat.value}</span>
+              <span className="stat-description">
+                {stat.text}
+              </span>
+            </div>
+          ))}
+
+          <div className="scroll-hint">
+            <span className="scroll-line" />
+            SCROLL TO DRIVE
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
   );
 }
